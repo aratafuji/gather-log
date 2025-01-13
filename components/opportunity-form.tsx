@@ -13,11 +13,12 @@ import { X, Plus } from 'lucide-react'
 interface OpportunityFormProps {
   eventId: string;
   opportunity?: Opportunity;
+  existingParticipants?: Participant[];
   onSubmit: (opportunity: Opportunity, participants: Participant[]) => void;
   onCancel: () => void;
 }
 
-export function OpportunityForm({ eventId, opportunity, onSubmit, onCancel }: OpportunityFormProps) {
+export function OpportunityForm({ eventId, opportunity, existingParticipants = [], onSubmit, onCancel }: OpportunityFormProps) {
   const [formData, setFormData] = useState<Omit<Opportunity, 'id'>>({
     eventId,
     name: '',
@@ -30,9 +31,18 @@ export function OpportunityForm({ eventId, opportunity, onSubmit, onCancel }: Op
 
   useEffect(() => {
     if (opportunity) {
-      setFormData(opportunity)
+      setFormData({
+        eventId: opportunity.eventId,
+        name: opportunity.name,
+        date: opportunity.date,
+        content: opportunity.content,
+        relatedUrl: opportunity.relatedUrl || ''
+      })
     }
-  }, [opportunity])
+    if (existingParticipants.length > 0) {
+      setParticipants(existingParticipants)
+    }
+  }, [opportunity, existingParticipants])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,21 +72,26 @@ export function OpportunityForm({ eventId, opportunity, onSubmit, onCancel }: Op
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }))
   }
 
   const addParticipant = () => {
     if (newParticipant.trim() !== '') {
-      setParticipants([...participants, { id: generateUUID(), name: newParticipant.trim(), opportunityId: opportunity?.id || '' }])
+      setParticipants(prev => [...prev, { 
+        id: generateUUID(), 
+        name: newParticipant.trim(), 
+        opportunityId: opportunity?.id || eventId 
+      }])
       setNewParticipant('')
     }
   }
 
   const removeParticipant = (id: string) => {
-    setParticipants(participants.filter(p => p.id !== id))
+    setParticipants(prev => prev.filter(p => p.id !== id))
   }
 
   return (

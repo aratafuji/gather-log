@@ -70,7 +70,7 @@ export default function ParticipantList() {
           <p className="text-center text-gray-500">参加者がいません。</p>
         ) : (
           participants.map((participant) => (
-            <Link key={participant.id} href={`/participants/${encodeURIComponent(participant.name)}`}>
+            <Link key={participant.id} href={`/participants/${participant.id}`}>
               <div className="py-2 hover:bg-gray-100 cursor-pointer">
                 <h2 className="text-lg font-semibold text-gray-800">
                   {participant.name} 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Event, Opportunity, Participant } from '@/types/types'
 import { CalendarIcon, MapPinIcon, PlusIcon, PencilIcon, UsersIcon } from 'lucide-react'
@@ -13,7 +13,6 @@ import { toast } from '@/components/ui/use-toast'
 import {
   Pagination,
   PaginationContent,
-  PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
@@ -30,7 +29,8 @@ export default function EventDetail() {
   const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPageState] = useState(1)
+  const opportunityListRef = useRef<HTMLDivElement>(null)
 
   const fetchEventData = useCallback(async () => {
     try {
@@ -70,46 +70,61 @@ export default function EventDetail() {
 
   const handleOpportunitySubmit = async (newOpportunity: Opportunity, newParticipants: Participant[]) => {
     try {
-      await saveData('opportunities', [newOpportunity])
-      
-      // 既存の参加者を削除
-      const existingParticipants = participants.filter(p => p.opportunityId === newOpportunity.id)
-      for (const participant of existingParticipants) {
-        await deleteData('participants', participant.id)
+      console.log('Saving opportunity:', newOpportunity);
+      const savedOpportunity = await saveData('opportunities', [newOpportunity]);
+      console.log('Saved opportunity:', savedOpportunity);
+
+      if (!savedOpportunity || savedOpportunity.length === 0) {
+        throw new Error('オポチュニティの保存に失敗しました');
       }
 
-      // 新しい参加者を保存
-      for (const participant of newParticipants) {
-        participant.opportunityId = newOpportunity.id
-        await saveData('participants', [participant])
+      const updatedOpportunity = savedOpportunity[0];
+      
+      // 既存の参加者を取得
+      const existingParticipants = participants.filter(p => p.opportunityId === updatedOpportunity.id);
+      
+      // 新しい参加者リストを作成
+      const updatedParticipants = newParticipants.map(participant => ({
+        ...participant,
+        id: existingParticipants.find(p => p.name === participant.name)?.id || participant.id,
+        opportunityId: updatedOpportunity.id
+      }));
+
+      console.log('Saving participants:', updatedParticipants);
+      // 参加者データを更新
+      const savedParticipants = await saveData('participants', updatedParticipants);
+      console.log('Saved participants:', savedParticipants);
+
+      if (!savedParticipants || savedParticipants.length === 0) {
+        throw new Error('参加者の保存に失敗しました');
       }
 
       setOpportunities(prev => {
         const updatedOpportunities = editingOpportunity
-          ? prev.map(opp => opp.id === newOpportunity.id ? newOpportunity : opp)
-          : [...prev, newOpportunity]
-        return updatedOpportunities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      })
+          ? prev.map(opp => opp.id === updatedOpportunity.id ? updatedOpportunity : opp)
+          : [...prev, updatedOpportunity];
+        return updatedOpportunities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      });
 
       setParticipants(prev => {
-        const filteredParticipants = prev.filter(p => p.opportunityId !== newOpportunity.id)
-        return [...filteredParticipants, ...newParticipants]
-      })
+        const filteredParticipants = prev.filter(p => p.opportunityId !== updatedOpportunity.id);
+        return [...filteredParticipants, ...savedParticipants];
+      });
 
-      setIsDialogOpen(false)
-      setEditingOpportunity(null)
+      setIsDialogOpen(false);
+      setEditingOpportunity(null);
       toast({
         title: "成功",
         description: "オポチュニティが正常に保存されました。",
-      })
+      });
     } catch (err) {
-      console.error('オポチュニティの保存に失敗しました:', err)
-      setError('オポチュニティの保存に失敗しました。もう一度お試しください。')
+      console.error('オポチュニティの保存に失敗しました:', err);
+      setError('オポチュニティの保存に失敗しました。もう一度お試しください。');
       toast({
         title: "エラー",
-        description: "オポチュニティの保存に失敗しました。",
+        description: err instanceof Error ? err.message : "オポチュニティの保存に失敗しました。",
         variant: "destructive",
-      })
+      });
     }
   }
 
@@ -129,6 +144,35 @@ export default function EventDetail() {
     currentPage * ITEMS_PER_PAGE
   )
 
+  const setCurrentPage = (page: number) => {
+    setCurrentPageState(page)
+    opportunityListRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const PaginationComponent = () => (
+    <Pagination>
+      <PaginationContent>
+        <PaginationPrevious 
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+        />
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <PaginationLink
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            isActive={page === currentPage}
+          >
+            {page}
+          </PaginationLink>
+        ))}
+        <PaginationNext
+          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+        />
+      </PaginationContent>
+    </Pagination>
+  )
+
   if (isLoading) {
     return <div className="text-center">読み込み中...</div>
   }
@@ -142,7 +186,7 @@ export default function EventDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={opportunityListRef}>
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">
           <a href={event.url} target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">
@@ -180,14 +224,17 @@ export default function EventDetail() {
               </DialogTitle>
             </DialogHeader>
             <OpportunityForm 
-              eventId={event.id} 
+              eventId={event?.id || ''} 
               opportunity={editingOpportunity || undefined}
+              existingParticipants={participants.filter(p => p.opportunityId === editingOpportunity?.id)}
               onSubmit={handleOpportunitySubmit}
-              onCancel={handleCancel}
+              onCancel={() => setIsDialogOpen(false)}
             />
           </DialogContent>
         </Dialog>
       </div>
+
+      {opportunities.length > 0 && <PaginationComponent />}
 
       <div className="space-y-4">
         {paginatedOpportunities.map((opp) => (
@@ -218,7 +265,7 @@ export default function EventDetail() {
                 {participants.filter(p => p.opportunityId === opp.id).map((participant, index) => (
                   <span key={participant.id}>
                     {index > 0 && ', '}
-                    <Link href={`/participants/${encodeURIComponent(participant.name)}`} className="text-blue-500 hover:underline">
+                    <Link href={`/participants/${participant.id}`} className="text-blue-500 hover:underline">
                       {participant.name}
                     </Link>
                   </span>
@@ -233,27 +280,7 @@ export default function EventDetail() {
         ))}
       </div>
 
-      <Pagination>
-        <PaginationContent>
-          <PaginationPrevious 
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          />
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <PaginationLink
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              isActive={page === currentPage}
-            >
-              {page}
-            </PaginationLink>
-          ))}
-          <PaginationNext
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-          />
-        </PaginationContent>
-      </Pagination>
+      {opportunities.length > 0 && <PaginationComponent />}
     </div>
   )
 }
