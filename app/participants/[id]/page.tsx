@@ -25,8 +25,9 @@ export default function ParticipantDetail() {
       if (foundParticipant) {
         setParticipant(foundParticipant)
 
+        const participantName = foundParticipant.name
         const participantOpportunities = allOpportunities
-          .filter(opp => opp.id === foundParticipant.opportunityId)
+          .filter(opp => allParticipants.some(p => p.opportunityId === opp.id && p.name === participantName))
           .map(opp => ({
             ...opp,
             event: allEvents.find(event => event.id === opp.eventId)!
@@ -52,14 +53,18 @@ export default function ParticipantDetail() {
       </div>
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-2xl font-semibold text-gray-800 mb-4">参加オポチュニティ</h2>
-        {opportunities.map((opp) => (
-          <div key={opp.id} className="mb-4 pb-4 border-b last:border-b-0">
-            <h3 className="text-xl font-semibold text-gray-800">{opp.event.name}</h3>
-            <p className="text-gray-600">{opp.date}</p>
-            <p className="text-gray-700">{opp.name}</p>
-            <p className="text-gray-600">{opp.content}</p>
-          </div>
-        ))}
+        {opportunities.length === 0 ? (
+          <p className="text-gray-600">参加したオポチュニティはありません。</p>
+        ) : (
+          opportunities.map((opp) => (
+            <div key={opp.id} className="mb-4 pb-4 border-b last:border-b-0">
+              <h3 className="text-xl font-semibold text-gray-800">{opp.event.name}</h3>
+              <p className="text-gray-600">{opp.date}</p>
+              <p className="text-gray-700">{opp.name}</p>
+              <p className="text-gray-600">{opp.content}</p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

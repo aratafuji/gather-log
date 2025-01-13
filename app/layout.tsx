@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,13 +19,19 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${inter.className} flex flex-col min-h-screen bg-gray-50`}>
-        <header className="bg-white shadow-sm">
+        <header className="bg-black text-white shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-gray-800 hover:text-gray-600">
-              GatherLog
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/gatherlog-logo.svg"
+                alt="GatherLog"
+                width={150}
+                height={40}
+                priority
+              />
             </Link>
             <nav>
-              <Link href="/participants" className="text-gray-600 hover:text-gray-800">
+              <Link href="/participants" className="text-white hover:text-gray-300">
                 参加者一覧
               </Link>
             </nav>
@@ -33,8 +40,8 @@ export default function RootLayout({
         <main className="flex-grow container mx-auto px-4 py-8">
           {children}
         </main>
-        <footer className="bg-white shadow-sm mt-8">
-          <div className="container mx-auto px-4 py-4 text-center text-gray-600">
+        <footer className="bg-black text-white shadow-sm mt-8">
+          <div className="container mx-auto px-4 py-4 text-center text-white">
             Created by aratafuji
           </div>
         </footer>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Event } from '@/types/types'
+import { sanitizeInput, validateInput } from '@/utils/security'
 
 interface EventFormProps {
   event?: Event;
@@ -29,10 +30,18 @@ export function EventForm({ event, onSubmit, onCancel }: EventFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit({
-      id: event ? event.id : Date.now().toString(),
-      ...formData
-    })
+    if (Object.values(formData).every(value => validateInput(value))) {
+      const sanitizedData = Object.fromEntries(
+        Object.entries(formData).map(([key, value]) => [key, sanitizeInput(value)])
+      );
+      onSubmit({
+        id: event ? event.id : Date.now().toString(),
+        ...sanitizedData
+      })
+    } else {
+      // エラーハンドリング（例：エラーメッセージを表示）
+      console.error('Invalid input');
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

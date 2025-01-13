@@ -116,7 +116,7 @@ export default function EventDetail() {
         <h2 className="text-2xl font-semibold text-gray-800">オポチュニティ</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingOpportunity(null)}>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <PlusIcon className="w-4 h-4 mr-2" />
               オポチュニティを追加
             </Button>

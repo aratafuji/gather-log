@@ -49,10 +49,10 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingEvent(null)}>
+            <Button className="mb-4" onClick={() => setEditingEvent(null)}>
               <PlusIcon className="w-4 h-4 mr-2" />
               新しいイベントを追加
             </Button>
@@ -70,12 +70,12 @@ export default function Home() {
             />
           </DialogContent>
         </Dialog>
+        {events.length === 0 ? (
+          <p className="text-center text-gray-500">イベントがありません。新しいイベントを追加してください。</p>
+        ) : (
+          <EventList events={events} onEditEvent={handleEditEvent} />
+        )}
       </div>
-      {events.length === 0 ? (
-        <p className="text-center text-gray-500">イベントがありません。新しいイベントを追加してください。</p>
-      ) : (
-        <EventList events={events} onEditEvent={handleEditEvent} />
-      )}
     </div>
   )
 }
