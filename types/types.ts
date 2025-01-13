@@ -10,7 +10,7 @@ export interface Event {
 export interface Participant {
   id: string;
   name: string;
-  discordId: string;
+  opportunityId: string;
 }
 
 export interface Opportunity {

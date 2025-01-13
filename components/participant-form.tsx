@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Participant } from '@/types/types'
+import { generateUUID } from '@/utils/generateUUID'
 
 interface ParticipantFormProps {
   opportunityId: string;
@@ -16,7 +17,6 @@ interface ParticipantFormProps {
 export function ParticipantForm({ opportunityId, participant, onSubmit, onCancel }: ParticipantFormProps) {
   const [formData, setFormData] = useState<Omit<Participant, 'id'>>({
     name: '',
-    discordId: '',
     opportunityId
   })
 
@@ -29,7 +29,7 @@ export function ParticipantForm({ opportunityId, participant, onSubmit, onCancel
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({
-      id: participant ? participant.id : Date.now().toString(),
+      id: participant ? participant.id : generateUUID(),
       ...formData
     })
   }
@@ -51,15 +51,6 @@ export function ParticipantForm({ opportunityId, participant, onSubmit, onCancel
           value={formData.name}
           onChange={handleChange}
           required
-        />
-      </div>
-      <div>
-        <Label htmlFor="discordId">Discord ID</Label>
-        <Input
-          id="discordId"
-          name="discordId"
-          value={formData.discordId}
-          onChange={handleChange}
         />
       </div>
       <div className="flex justify-end space-x-2">

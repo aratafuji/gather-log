@@ -1,55 +1,85 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Opportunity, Participant } from '@/types/types'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ParticipantForm } from '@/components/participant-form'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { PencilIcon } from 'lucide-react'
+import { PencilIcon, TrashIcon } from 'lucide-react'
+import { fetchData, saveData, deleteData } from '@/utils/dataOperations'
+import { toast } from '@/components/ui/use-toast'
 
 export default function ParticipantList() {
   const { id } = useParams()
+  const router = useRouter()
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const storedOpportunities = localStorage.getItem('opportunities')
-    const storedParticipants = localStorage.getItem('participants')
-    if (storedOpportunities) {
-      const opportunities: Opportunity[] = JSON.parse(storedOpportunities)
-      const foundOpportunity = opportunities.find(opp => opp.id === id)
-      if (foundOpportunity) {
-        setOpportunity(foundOpportunity)
+    const fetchOpportunityData = async () => {
+      try {
+        setIsLoading(true)
+        const opportunities = await fetchData('opportunities')
+        const foundOpportunity = opportunities.find((opp: Opportunity) => opp.id === id)
+        if (foundOpportunity) {
+          setOpportunity(foundOpportunity)
+        }
+        setIsLoading(false)
+      } catch (err) {
+        console.error('オポチュニティデータの取得に失敗しました:', err)
+        setError('オポチュニティデータの取得に失敗しました。もう一度お試しください。')
+        setIsLoading(false)
       }
     }
-    if (storedParticipants) {
-      const allParticipants: Participant[] = JSON.parse(storedParticipants)
-      const opportunityParticipants = allParticipants.filter(p => p.opportunityId === id)
-      setParticipants(opportunityParticipants)
+
+    const fetchParticipantsData = async () => {
+      try {
+        const allParticipants = await fetchData('participants')
+        const opportunityParticipants = allParticipants.filter((p: Participant) => p.opportunityId === id)
+        setParticipants(opportunityParticipants)
+      } catch (err) {
+        console.error('参加者データの取得に失敗しました:', err)
+        setError('参加者データの取得に失敗しました。もう一度お試しください。')
+      }
     }
+
+    fetchOpportunityData()
+    fetchParticipantsData()
   }, [id])
 
-  const handleParticipantSubmit = (newParticipant: Participant) => {
-    let updatedParticipants: Participant[]
-    if (editingParticipant) {
-      updatedParticipants = participants.map(p => 
-        p.id === newParticipant.id ? newParticipant : p
-      )
-    } else {
-      updatedParticipants = [...participants, newParticipant]
+  const handleParticipantSubmit = async (newParticipant: Participant) => {
+    try {
+      await saveData('participants', [newParticipant])
+      let updatedParticipants: Participant[]
+      if (editingParticipant) {
+        updatedParticipants = participants.map(p => 
+          p.id === newParticipant.id ? newParticipant : p
+        )
+      } else {
+        updatedParticipants = [...participants, newParticipant]
+      }
+      setParticipants(updatedParticipants)
+      setIsDialogOpen(false)
+      setEditingParticipant(null)
+      toast({
+        title: "成功",
+        description: "参加者が正常に保存されました。",
+      })
+    } catch (err) {
+      console.error('参加者の保存に失敗しました:', err)
+      setError('参加者の保存に失敗しました。もう一度お試しください。')
+      toast({
+        title: "エラー",
+        description: "参加者の保存に失敗しました。",
+        variant: "destructive",
+      })
     }
-    setParticipants(updatedParticipants)
-    const allParticipants = JSON.parse(localStorage.getItem('participants') || '[]')
-    const updatedAllParticipants = editingParticipant
-      ? allParticipants.map(p => p.id === newParticipant.id ? newParticipant : p)
-      : [...allParticipants, newParticipant]
-    localStorage.setItem('participants', JSON.stringify(updatedAllParticipants))
-    setIsDialogOpen(false)
-    setEditingParticipant(null)
   }
 
   const handleEditParticipant = (participant: Participant) => {
@@ -57,9 +87,36 @@ export default function ParticipantList() {
     setIsDialogOpen(true)
   }
 
+  const handleDeleteParticipant = async (participantId: string) => {
+    try {
+      await deleteData('participants', participantId)
+      setParticipants(participants.filter(p => p.id !== participantId))
+      toast({
+        title: "成功",
+        description: "参加者が正常に削除されました。",
+      })
+    } catch (err) {
+      console.error('参加者の削除に失敗しました:', err)
+      setError('参加者の削除に失敗しました。もう一度お試しください。')
+      toast({
+        title: "エラー",
+        description: "参加者の削除に失敗しました。",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleCancel = () => {
     setIsDialogOpen(false)
     setEditingParticipant(null)
+  }
+
+  if (isLoading) {
+    return <div className="text-center">読み込み中...</div>
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>
   }
 
   if (!opportunity) {
@@ -105,11 +162,15 @@ export default function ParticipantList() {
             <div className="flex justify-between items-start">
               <div>
                 <h4 className="text-lg font-semibold text-gray-800">{participant.name}</h4>
-                <p className="text-sm text-gray-600">Discord: {participant.discordId || 'Not provided'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => handleEditParticipant(participant)}>
-                <PencilIcon className="w-4 h-4 text-gray-600" />
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="ghost" size="sm" onClick={() => handleEditParticipant(participant)}>
+                  <PencilIcon className="w-4 h-4 text-gray-600" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteParticipant(participant.id)}>
+                  <TrashIcon className="w-4 h-4 text-red-600" />
+                </Button>
+              </div>
             </div>
           </div>
         ))}

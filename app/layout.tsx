@@ -1,36 +1,53 @@
-import type { Metadata } from 'next'
+"use client"
+
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
-import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'GatherLog',
-  description: 'Log your conference and event interactions',
-}
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // const [user, setUser] = useState<any>(null)
+
+  // useEffect(() => {
+  //   const checkUser = async () => {
+  //     try {
+  //       const currentUser = await getCurrentUser()
+  //       setUser(currentUser)
+  //       if (!currentUser) {
+  //         console.log('ユーザーが認証されていません')
+  //       }
+  //     } catch (error) {
+  //       console.error('ユーザー認証エラー:', error)
+  //     }
+  //   }
+  //   checkUser()
+  // }, [])
+
+  // const handleSignIn = async () => {
+  //   await signIn()
+  // }
+
+  // const handleSignOut = async () => {
+  //   await signOut()
+  //   setUser(null)
+  // }
+
   return (
     <html lang="ja">
       <body className={`${inter.className} flex flex-col min-h-screen bg-gray-50`}>
         <header className="bg-black text-white shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             <Link href="/" className="flex items-center">
-              <Image
-                src="/gatherlog-logo.svg"
-                alt="GatherLog"
-                width={150}
-                height={40}
-                priority
-              />
+              <span className="text-2xl font-bold text-white">GatherLog</span>
             </Link>
-            <nav>
+            <nav className="flex items-center space-x-4">
               <Link href="/participants" className="text-white hover:text-gray-300">
                 参加者一覧
               </Link>
@@ -45,6 +62,7 @@ export default function RootLayout({
             Created by aratafuji
           </div>
         </footer>
+        <Toaster />
       </body>
     </html>
   )

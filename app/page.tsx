@@ -8,33 +8,69 @@ import { PlusIcon } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { EventForm } from '@/components/event-form'
+import { fetchData, saveData } from '@/utils/dataOperations'
+import { toast } from '@/components/ui/use-toast'
 
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const storedEvents = localStorage.getItem('events')
-    if (storedEvents) {
-      setEvents(JSON.parse(storedEvents).sort((a, b) => compareDates(a.startDate, b.startDate)))
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true)
+        const data = await fetchData('events')
+        setEvents(data.sort((a: Event, b: Event) => compareDates(a.startDate, b.startDate)))
+        setIsLoading(false)
+      } catch (err) {
+        console.error('イベントデータの取得に失敗しました:', err)
+        setError('イベントデータの取得に失敗しました。もう一度お試しください。')
+        setIsLoading(false)
+        toast({
+          title: "エラー",
+          description: "イベントデータの取得に失敗しました。",
+          variant: "destructive",
+        })
+      }
     }
+    loadEvents()
   }, [])
 
-  const handleEventSubmit = (newEvent: Event) => {
-    let updatedEvents: Event[]
-    if (editingEvent) {
-      updatedEvents = events.map(event => 
-        event.id === newEvent.id ? newEvent : event
-      )
-    } else {
-      updatedEvents = [...events, newEvent]
+  const handleEventSubmit = async (newEvent: Event) => {
+    try {
+      const savedEvent = await saveData('events', [newEvent])
+      if (!savedEvent || savedEvent.length === 0) {
+        throw new Error('保存されたイベントデータが空です')
+      }
+      let updatedEvents: Event[]
+      if (editingEvent) {
+        updatedEvents = events.map(event => 
+          event.id === newEvent.id ? savedEvent[0] : event
+        )
+      } else {
+        updatedEvents = [...events, savedEvent[0]]
+      }
+      updatedEvents.sort((a, b) => compareDates(a.startDate, b.startDate))
+      setEvents(updatedEvents)
+      setIsDialogOpen(false)
+      setEditingEvent(null)
+      toast({
+        title: "成功",
+        description: "イベントが正常に保存されました。",
+      })
+    } catch (err) {
+      console.error('イベントの保存に失敗しました:', err)
+      const errorMessage = err instanceof Error ? err.message : JSON.stringify(err)
+      setError(`イベントの保存に失敗しました: ${errorMessage}`)
+      toast({
+        title: "エラー",
+        description: `イベントの保存に失敗しました: ${errorMessage}`,
+        variant: "destructive",
+      })
     }
-    updatedEvents.sort((a, b) => compareDates(a.startDate, b.startDate))
-    setEvents(updatedEvents)
-    localStorage.setItem('events', JSON.stringify(updatedEvents))
-    setIsDialogOpen(false)
-    setEditingEvent(null)
   }
 
   const handleEditEvent = (event: Event) => {
@@ -45,6 +81,14 @@ export default function Home() {
   const handleCancel = () => {
     setIsDialogOpen(false)
     setEditingEvent(null)
+  }
+
+  if (isLoading) {
+    return <div className="text-center">読み込み中...</div>
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>
   }
 
   return (
