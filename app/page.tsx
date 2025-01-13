@@ -70,7 +70,6 @@ export default function Home() {
             />
           </DialogContent>
         </Dialog>
-        
       </div>
       {events.length === 0 ? (
         <p className="text-center text-gray-500">イベントがありません。新しいイベントを追加してください。</p>

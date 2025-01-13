@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { OpportunityForm } from '@/components/opportunity-form'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
-
 export default function EventDetail() {
   const { id } = useParams()
   const [event, setEvent] = useState<Event | null>(null)
@@ -115,29 +114,27 @@ export default function EventDetail() {
 
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold text-gray-800">オポチュニティ</h2>
-        <div className="space-x-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingOpportunity(null)}>
-                <PlusIcon className="w-4 h-4 mr-2" />
-                オポチュニティを追加
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingOpportunity ? 'オポチュニティを編集' : '新しいオポチュニティを追加'}
-                </DialogTitle>
-              </DialogHeader>
-              <OpportunityForm 
-                eventId={event.id} 
-                opportunity={editingOpportunity || undefined}
-                onSubmit={handleOpportunitySubmit}
-                onCancel={handleCancel}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditingOpportunity(null)}>
+              <PlusIcon className="w-4 h-4 mr-2" />
+              オポチュニティを追加
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingOpportunity ? 'オポチュニティを編集' : '新しいオポチュニティを追加'}
+              </DialogTitle>
+            </DialogHeader>
+            <OpportunityForm 
+              eventId={event.id} 
+              opportunity={editingOpportunity || undefined}
+              onSubmit={handleOpportunitySubmit}
+              onCancel={handleCancel}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="space-y-4">
