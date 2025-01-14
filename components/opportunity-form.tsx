@@ -84,7 +84,7 @@ export function OpportunityForm({ eventId, opportunity, existingParticipants = [
       setParticipants(prev => [...prev, { 
         id: generateUUID(), 
         name: newParticipant.trim(), 
-        opportunityId: opportunity?.id || eventId 
+        opportunityId: opportunity?.id || '' 
       }])
       setNewParticipant('')
     }
@@ -95,7 +95,7 @@ export function OpportunityForm({ eventId, opportunity, existingParticipants = [
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-4">
       <div>
         <Label htmlFor="name">オポチュニティ名</Label>
         <Input
@@ -163,7 +163,7 @@ export function OpportunityForm({ eventId, opportunity, existingParticipants = [
           ))}
         </div>
       </div>
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-end space-x-2 sticky bottom-0 bg-white pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
           キャンセル
         </Button>

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Participant, Opportunity, Event } from '@/types/types'
 import { Button } from '@/components/ui/button'
 import { fetchData } from '@/utils/dataOperations'
+import { CalendarIcon, MapPinIcon, LinkIcon } from 'lucide-react'
 
 export default function ParticipantDetail() {
   const { id } = useParams()
@@ -84,12 +85,29 @@ export default function ParticipantDetail() {
         ) : (
           opportunities.map((opp) => (
             <div key={opp.id} className="mb-4 pb-4 border-b last:border-b-0">
-              <h3 className="text-xl font-semibold text-gray-800 hover:text-blue-600 cursor-pointer" onClick={() => router.push(`/event/${opp.event.id}`)}>
-                {opp.event.name}
-              </h3>
-              <p className="text-gray-600">{opp.date}</p>
-              <p className="text-gray-700">{opp.name}</p>
-              <p className="text-gray-600">{opp.content}</p>
+              <Link href={`/opportunity/${opp.id}`} className="text-xl font-semibold text-gray-800 hover:text-blue-600">
+                {opp.name}
+              </Link>
+              <div className="flex items-center space-x-2 text-gray-600 mt-1">
+                <CalendarIcon className="w-4 h-4" />
+                <span>{opp.date}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-gray-600 mt-1">
+                <MapPinIcon className="w-4 h-4" />
+                <Link href={`/event/${opp.event.id}`} className="hover:text-blue-600">
+                  {opp.event.name}
+                </Link>
+                <span>({opp.event.location})</span>
+              </div>
+              <p className="text-gray-700 mt-2">{opp.content}</p>
+              {opp.relatedUrl && (
+                <div className="mt-2">
+                  <a href={opp.relatedUrl} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
+                    <LinkIcon className="w-4 h-4 mr-1" />
+                    関連リンク
+                  </a>
+                </div>
+              )}
             </div>
           ))
         )}

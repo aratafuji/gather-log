@@ -27,7 +27,7 @@ export async function saveData(type: string, data: any) {
 
     if (error) {
       console.error('Error saving data:', error)
-      throw new Error('データ保存エラー: ' + error.message)
+      throw new Error(`データ保存エラー: ${error.message}`)
     }
 
     if (!savedData || savedData.length === 0) {

@@ -217,7 +217,7 @@ export default function EventDetail() {
               オポチュニティを追加
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingOpportunity ? 'オポチュニティを編集' : '新しいオポチュニティを追加'}
@@ -240,19 +240,9 @@ export default function EventDetail() {
         {paginatedOpportunities.map((opp) => (
           <div key={opp.id} className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-start mb-2">
-              {opp.relatedUrl ? (
-                <a 
-                  href={opp.relatedUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-xl font-semibold text-gray-800 hover:text-gray-600"
-                  aria-label={`${opp.name} - 外部リンクが開きます`}
-                >
-                  {opp.name}
-                </a>
-              ) : (
-                <h4 className="text-xl font-semibold text-gray-800">{opp.name}</h4>
-              )}
+              <Link href={`/opportunity/${opp.id}`} className="text-xl font-semibold text-gray-800 hover:text-gray-600">
+                {opp.name}
+              </Link>
               <Button variant="ghost" size="sm" onClick={() => handleEditOpportunity(opp)}>
                 <PencilIcon className="w-4 h-4 text-gray-600" />
               </Button>
@@ -276,6 +266,13 @@ export default function EventDetail() {
                 <span className="sr-only">参加者を管理</span>
               </Link>
             </div>
+            {opp.relatedUrl && (
+              <div>
+                <a href={opp.relatedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                  関連リンク
+                </a>
+              </div>
+            )}
           </div>
         ))}
       </div>
