@@ -5,17 +5,19 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Opportunity, Participant, Event } from '@/types/types'
 import { Button } from '@/components/ui/button'
-import { fetchData } from '@/utils/dataOperations'
-import { CalendarIcon, MapPinIcon, UsersIcon, LinkIcon } from 'lucide-react'
+import { fetchData, saveData, deleteData } from '@/utils/dataOperations'
+import { CalendarIcon, MapPinIcon, UsersIcon, ArrowLeftIcon, PencilIcon } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { OpportunityForm } from '@/components/opportunity-form'
+import { toast } from '@/components/ui/use-toast'
 
 export default function OpportunityDetail() {
   const { id } = useParams()
   const router = useRouter()
-  const [opportunity, setOpportunity] = useState<Opportunity | null>(null)
-  const [event, setEvent] = useState<Event | null>(null)
-  const [participants, setParticipants] = useState<Participant[]>([])
+  const [opportunity, setOpportunity] = useState<Opportunity & { event: Event, participants: Participant[] } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchOpportunityData = async () => {
@@ -26,12 +28,16 @@ export default function OpportunityDetail() {
         const allParticipants: Participant[] = await fetchData('participants')
 
         const foundOpportunity = allOpportunities.find(opp => opp.id === id)
+
         if (foundOpportunity) {
-          setOpportunity(foundOpportunity)
-          const relatedEvent = allEvents.find(event => event.id === foundOpportunity.eventId)
-          setEvent(relatedEvent || null)
-          const opportunityParticipants = allParticipants.filter(p => p.opportunityId === foundOpportunity.id)
-          setParticipants(opportunityParticipants)
+          const event = allEvents.find(event => event.id === foundOpportunity.eventId)
+          const participants = allParticipants.filter(p => p.opportunityId === foundOpportunity.id)
+
+          setOpportunity({
+            ...foundOpportunity,
+            event: event!,
+            participants: participants
+          })
         } else {
           setError('オポチュニティが見つかりません。')
         }
@@ -46,6 +52,43 @@ export default function OpportunityDetail() {
     fetchOpportunityData()
   }, [id])
 
+  const handleOpportunitySubmit = async (updatedOpportunity: Opportunity, updatedParticipants: Participant[]) => {
+    try {
+      await saveData('opportunities', [updatedOpportunity])
+
+      // 既存の参加者を削除
+      const existingParticipants = opportunity?.participants || []
+      for (const participant of existingParticipants) {
+        await deleteData('participants', participant.id)
+      }
+
+      // 新しい参加者を保存
+      for (const participant of updatedParticipants) {
+        participant.opportunityId = updatedOpportunity.id
+        await saveData('participants', [participant])
+      }
+
+      setOpportunity({
+        ...updatedOpportunity,
+        event: opportunity!.event,
+        participants: updatedParticipants
+      })
+
+      setIsDialogOpen(false)
+      toast({
+        title: "成功",
+        description: "オポチュニティが正常に更新されました。",
+      })
+    } catch (err) {
+      console.error('オポチュニティの更新に失敗しました:', err)
+      toast({
+        title: "エラー",
+        description: "オポチュニティの更新に失敗しました。",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (isLoading) {
     return <div className="text-center">読み込み中...</div>
   }
@@ -54,7 +97,7 @@ export default function OpportunityDetail() {
     return <div className="text-center text-red-500">{error}</div>
   }
 
-  if (!opportunity || !event) {
+  if (!opportunity) {
     return <div className="text-center text-gray-600">オポチュニティが見つかりません。</div>
   }
 
@@ -62,48 +105,74 @@ export default function OpportunityDetail() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">{opportunity.name}</h1>
-        <Link href={`/event/${event.id}`}>
-          <Button variant="outline" className="text-gray-600 hover:text-gray-800">← イベントに戻る</Button>
-        </Link>
-      </div>
-      <div className="bg-white shadow-sm rounded-lg p-6 space-y-4">
-        <div className="flex items-center space-x-2 text-gray-600">
-          <CalendarIcon className="w-5 h-5" />
-          <span>{opportunity.date}</span>
-        </div>
-        <div className="flex items-center space-x-2 text-gray-600">
-          <MapPinIcon className="w-5 h-5" />
-          <span>{event.name} ({event.location})</span>
-        </div>
-        {opportunity.relatedUrl && (
-          <div className="flex items-center space-x-2 text-gray-600">
-            <LinkIcon className="w-5 h-5" />
-            <a href={opportunity.relatedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-              関連リンク
-            </a>
-          </div>
-        )}
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">内容</h2>
-          <p className="text-gray-700 whitespace-pre-wrap">{opportunity.content}</p>
+        <div className="flex items-center space-x-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <PencilIcon className="w-4 h-4 mr-2" />
+                編集
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>オポチュニティを編集</DialogTitle>
+              </DialogHeader>
+              <OpportunityForm
+                eventId={opportunity.eventId}
+                opportunity={opportunity}
+                existingParticipants={opportunity.participants}
+                onSubmit={handleOpportunitySubmit}
+                onCancel={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+          <Link href={`/event/${opportunity.eventId}`}>
+            <Button variant="outline" className="text-gray-600 hover:text-gray-800">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              イベントに戻る
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">参加者</h2>
-        {participants.length === 0 ? (
-          <p className="text-gray-600">参加者はいません。</p>
-        ) : (
-          <ul className="space-y-2">
-            {participants.map((participant) => (
-              <li key={participant.id} className="flex items-center space-x-2">
-                <UsersIcon className="w-4 h-4 text-gray-600" />
-                <Link href={`/participants/${participant.id}`} className="text-blue-500 hover:underline">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+          <Link href={`/event/${opportunity.event.id}`} className="hover:text-blue-600">
+            {opportunity.event.name}
+          </Link>
+        </h2>
+        <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+          <span className="flex items-center">
+            <CalendarIcon className="w-4 h-4 mr-1" />
+            {opportunity.date}
+          </span>
+          <span className="flex items-center">
+            <MapPinIcon className="w-4 h-4 mr-1" />
+            {opportunity.event.location}
+          </span>
+        </div>
+        <p className="text-gray-700 mt-4">{opportunity.content}</p>
+        {opportunity.relatedUrl && (
+          <p className="mt-2">
+            <a href={opportunity.relatedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+              関連リンク
+            </a>
+          </p>
+        )}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+            <UsersIcon className="w-5 h-5 mr-2" />
+            参加者
+          </h3>
+          <ul className="mt-2 space-y-1">
+            {opportunity.participants.map((participant) => (
+              <li key={participant.id}>
+                <Link href={`/participants/${encodeURIComponent(participant.name)}`} className="text-blue-600 hover:underline">
                   {participant.name}
                 </Link>
               </li>
             ))}
           </ul>
-        )}
+        </div>
       </div>
     </div>
   )

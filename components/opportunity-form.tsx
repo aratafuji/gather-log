@@ -72,30 +72,25 @@ export function OpportunityForm({ eventId, opportunity, existingParticipants = [
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [e.target.name]: e.target.value
     }))
   }
 
   const addParticipant = () => {
     if (newParticipant.trim() !== '') {
-      setParticipants(prev => [...prev, { 
-        id: generateUUID(), 
-        name: newParticipant.trim(), 
-        opportunityId: opportunity?.id || '' 
-      }])
+      setParticipants([...participants, { id: generateUUID(), name: newParticipant.trim(), opportunityId: opportunity?.id || '' }])
       setNewParticipant('')
     }
   }
 
   const removeParticipant = (id: string) => {
-    setParticipants(prev => prev.filter(p => p.id !== id))
+    setParticipants(participants.filter(p => p.id !== id))
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="name">オポチュニティ名</Label>
         <Input
@@ -163,7 +158,7 @@ export function OpportunityForm({ eventId, opportunity, existingParticipants = [
           ))}
         </div>
       </div>
-      <div className="flex justify-end space-x-2 sticky bottom-0 bg-white pt-4">
+      <div className="flex justify-end space-x-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           キャンセル
         </Button>

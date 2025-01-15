@@ -6,12 +6,14 @@ import Link from 'next/link'
 import { Participant, Opportunity, Event } from '@/types/types'
 import { Button } from '@/components/ui/button'
 import { fetchData } from '@/utils/dataOperations'
+import { CalendarIcon, MapPinIcon, UsersIcon } from 'lucide-react'
+import React from 'react'
 
 export default function ParticipantDetail() {
   const { name } = useParams()
   const router = useRouter()
   const [participants, setParticipants] = useState<Participant[]>([])
-  const [opportunities, setOpportunities] = useState<(Opportunity & { event: Event })[]>([])
+  const [opportunities, setOpportunities] = useState<(Opportunity & { event: Event, participants: Participant[] })[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,13 +25,9 @@ export default function ParticipantDetail() {
         const allOpportunities: Opportunity[] = await fetchData('opportunities')
         const allEvents: Event[] = await fetchData('events')
 
-        console.log('All Participants:', allParticipants)
-        console.log('Decoded name:', decodeURIComponent(name as string))
-
         const foundParticipants = allParticipants.filter(p => 
           p.name === decodeURIComponent(name as string)
         )
-        console.log('Found Participants:', foundParticipants)
 
         if (foundParticipants.length > 0) {
           setParticipants(foundParticipants)
@@ -38,11 +36,11 @@ export default function ParticipantDetail() {
             .filter(opp => foundParticipants.some(p => p.opportunityId === opp.id))
             .map(opp => ({
               ...opp,
-              event: allEvents.find(event => event.id === opp.eventId)!
+              event: allEvents.find(event => event.id === opp.eventId)!,
+              participants: allParticipants.filter(p => p.opportunityId === opp.id)
             }))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-          console.log('Participant Opportunities:', participantOpportunities)
           setOpportunities(participantOpportunities)
         } else {
           setError('参加者が見つかりません。')
@@ -84,13 +82,44 @@ export default function ParticipantDetail() {
           <p className="text-gray-600">参加したオポチュニティはありません。</p>
         ) : (
           opportunities.map((opp) => (
-            <div key={opp.id} className="mb-4 pb-4 border-b last:border-b-0">
-              <h3 className="text-xl font-semibold text-gray-800 hover:text-blue-600 cursor-pointer" onClick={() => router.push(`/event/${opp.event.id}`)}>
-                {opp.event.name}
+            <div key={opp.id} className="mb-6 pb-6 border-b last:border-b-0">
+              <h3 className="text-xl font-semibold text-gray-800 hover:text-blue-600">
+                <Link href={`/opportunity/${opp.id}`}>
+                  {opp.name}
+                </Link>
               </h3>
-              <p className="text-gray-600">{opp.date}</p>
-              <p className="text-gray-700">{opp.name}</p>
-              <p className="text-gray-600">{opp.content}</p>
+              <h3 className="text-xl font-semibold text-gray-800 hover:text-blue-600">
+                <Link href={`/event/${opp.event.id}`}>
+                  {opp.event.name}
+                </Link>
+              </h3>
+              <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+                <span className="flex items-center">
+                  <CalendarIcon className="w-4 h-4 mr-1" />
+                  {opp.date}
+                </span>
+                <span className="flex items-center">
+                  <MapPinIcon className="w-4 h-4 mr-1" />
+                  {opp.event.location}
+                </span>
+              </div>
+              <p className="text-gray-700 mt-2">{opp.content}</p>
+              <div className="mt-3">
+                <h4 className="text-sm font-semibold text-gray-700 flex items-center">
+                  <UsersIcon className="w-4 h-4 mr-1" />
+                  参加者:
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  {opp.participants.map((participant, index) => (
+                    <React.Fragment key={participant.id}>
+                      {index > 0 && ', '}
+                      <Link href={`/participants/${encodeURIComponent(participant.name)}`} className="hover:underline">
+                        {participant.name}
+                      </Link>
+                    </React.Fragment>
+                  ))}
+                </p>
+              </div>
             </div>
           ))
         )}
